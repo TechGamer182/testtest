@@ -1,0 +1,15 @@
+# Inside .github/workflows/your-file-name.yml
+
+steps:
+  # 1. Update checkout from @v4 to the latest version
+  - name: Checkout Repository
+    uses: actions/checkout@v6
+
+  # ... your build/test steps here ...
+
+  # 2. Update upload-artifact from @v4 to the latest version
+  - name: Upload Build Artifacts
+    uses: actions/upload-artifact@v6 # Or @v5 depending on your preference
+    with:
+      name: montreal-map-site
+      path: ./
