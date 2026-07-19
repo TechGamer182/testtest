@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Montreal Interactive Travel Planner</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <title>Ultimate Montreal Interactive Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
             --primary: #1e3a8a;
-            --primary-light: #3b82f6;
             --bg: #f8fafc;
             --sidebar-bg: #ffffff;
             --text: #0f172a;
             --border: #e2e8f0;
             
-            /* Cluster Colors */
             --color-old-mtl: #ef4444;
             --color-downtown: #3b82f6;
             --color-mountain: #10b981;
@@ -23,24 +21,11 @@
             --color-regional: #64748b;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Sidebar Container */
         .sidebar {
-            width: 480px;
+            width: 460px;
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border);
             display: flex;
@@ -50,364 +35,207 @@
             z-index: 1000;
         }
 
-        .sidebar-header {
-            padding: 24px;
-            background: linear-gradient(135deg, var(--primary), #1d4ed8);
-            color: white;
-        }
+        .sidebar-header { padding: 20px; background: linear-gradient(135deg, var(--primary), #1d4ed8); color: white; }
+        .sidebar-header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .sidebar-header p { font-size: 12px; opacity: 0.9; }
 
-        .sidebar-header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
+        .controls { padding: 14px; background: #fff; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+        .search-bar { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px; outline: none; }
+        .filter-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+        .filter-btn { padding: 5px 10px; border-radius: 14px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: #475569; }
+        .filter-btn.active, .filter-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        .sidebar-header p {
-            font-size: 13px;
-            opacity: 0.9;
-        }
+        .locations-list { flex: 1; overflow-y: auto; padding: 14px; }
+        .location-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; border-left: 5px solid #cbd5e1; }
+        .location-item:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); background: #fff; }
+        .item-title { font-weight: 700; font-size: 14px; color: #1e293b; }
+        .item-type { font-size: 9px; text-transform: uppercase; font-weight: 700; padding: 2px 4px; border-radius: 4px; background: #e2e8f0; float: right; }
+        .item-desc { font-size: 12px; color: #64748b; margin-top: 4px; }
+        .item-meta { margin-top: 6px; font-size: 11px; font-style: italic; color: #b45309; font-weight: 500; }
 
-        /* Interactive Controls */
-        .search-filter-container {
-            padding: 16px;
-            background: #fff;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .search-bar {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .search-bar:focus {
-            border-color: var(--primary-light);
-        }
-
-        .filter-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .filter-btn {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            border: 1px solid var(--border);
-            background: #fff;
-            color: #475569;
-            transition: all 0.2s;
-        }
-
-        .filter-btn.active, .filter-btn:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* Dynamic List View */
-        .locations-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-        }
-
-        .location-item {
-            background: #f8fafc;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border-left: 5px solid #cbd5e1;
-        }
-
-        .location-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            background: #fff;
-        }
-
-        .item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 4px;
-        }
-
-        .item-title {
-            font-weight: 700;
-            font-size: 15px;
-            color: #1e293b;
-        }
-
-        .item-type {
-            font-size: 10px;
-            text-transform: uppercase;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: #e2e8f0;
-        }
-
-        .item-desc {
-            font-size: 12.5px;
-            color: #64748b;
-            margin-top: 4px;
-        }
-
-        .item-meta {
-            margin-top: 8px;
-            font-size: 11.5px;
-            font-style: italic;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Map Canvas Window */
-        #map {
-            flex: 1;
-            height: 100%;
-        }
-
-        /* Custom Popup Styles */
-        .custom-popup .leaflet-popup-content-wrapper {
-            border-radius: 12px;
-            padding: 6px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
-        
-        .popup-card h3 {
-            font-size: 16px;
-            margin-bottom: 6px;
-            color: var(--primary);
-        }
-
-        .popup-card p {
-            font-size: 13px;
-            color: #475569;
-            margin-bottom: 4px;
-        }
-
-        .popup-badge {
-            display: inline-block;
-            font-size: 10px;
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-        }
+        #map { flex: 1; height: 100%; }
+        .popup-card h3 { font-size: 14px; margin-bottom: 4px; color: var(--primary); }
+        .popup-card p { font-size: 12px; color: #475569; margin-bottom: 2px; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <h1>Montreal Master Map</h1>
-            <p>Click items to auto-pan the map. Search or filter by neighborhood.</p>
+            <h1>Montreal Master Plan (All 43 Places)</h1>
+            <p>Interactive Map & complete custom list</p>
         </div>
         
-        <div class="search-filter-container">
-            <input type="text" class="search-bar" id="searchBar" placeholder="🔍 Search attractions, foods, or streets...">
+        <div class="controls">
+            <input type="text" class="search-bar" id="searchBar" placeholder="🔍 Search any location or food item...">
             <div class="filter-buttons">
-                <button class="filter-btn active" onclick="filterZone('all')">Show All</button>
-                <button class="filter-btn" onclick="filterZone('old-mtl')">Old Montreal</button>
+                <button class="filter-btn active" onclick="filterZone('all')">All</button>
+                <button class="filter-btn" onclick="filterZone('old-mtl')">Old Mtl</button>
                 <button class="filter-btn" onclick="filterZone('downtown')">Downtown</button>
                 <button class="filter-btn" onclick="filterZone('mountain')">Mount Royal / Mile End</button>
                 <button class="filter-btn" onclick="filterZone('olympic')">Olympic Park</button>
                 <button class="filter-btn" onclick="filterZone('islands')">The Islands</button>
+                <button class="filter-btn" onclick="filterZone('regional')">Outlying</button>
             </div>
         </div>
 
-        <div class="locations-list" id="locationsList">
-            </div>
+        <div class="locations-list" id="locationsList"></div>
     </div>
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Master Data Points Array mapping your specific text parameters to geographical coordinates
         const locationsData = [
-            // ZONE 1: OLD MONTREAL & PORT
-            { id: 1, zone: 'old-mtl', type: 'Attraction', name: 'Old Montreal (Vieux-Montréal)', desc: 'Classic Poutine central. Perfect zone to walk for the whole day.', lat: 45.5074, lng: -73.5542, border: 'var(--color-old-mtl)' },
-            { id: 2, zone: 'old-mtl', type: 'Attraction', name: 'Notre-Dame Basilica & Aura Show', desc: 'Stunning historical basilica offering the immersive Aura light display.', lat: 45.5045, lng: -73.5560, border: 'var(--color-old-mtl)' },
-            { id: 3, zone: 'old-mtl', type: 'Attraction', name: 'Montreal Science Center', desc: 'Interactive science museum located directly on the historic Key piers.', lat: 45.5042, lng: -73.5518, border: 'var(--color-old-mtl)' },
-            { id: 4, zone: 'old-mtl', type: 'Attraction', name: 'La Grande Roue Ferris Wheel', desc: 'Canada\'s largest observation wheel, giving panoramic views of the river.', lat: 45.5090, lng: -73.5490, border: 'var(--color-old-mtl)' },
-            { id: 5, zone: 'old-mtl', type: 'Attraction', name: 'Marché Bonsecours', desc: 'Historic domed public marketplace housing local artisan boutique shops.', lat: 45.5096, lng: -73.5514, border: 'var(--color-old-mtl)' },
-            { id: 6, zone: 'old-mtl', type: 'Food', name: 'Crêperie St. Paul', desc: 'Delicious local sweet and savory pancakes and crepes.', lat: 45.5079, lng: -73.5526, border: 'var(--color-old-mtl)', meta: '🥞 Top Crepe Recommendation' },
-            { id: 7, zone: 'old-mtl', type: 'Food', name: 'Monarque Restaurant', desc: 'High-end Frenchie dinner destination located at 406 Rue Saint-Jacques.', lat: 45.5028, lng: -73.5595, border: 'var(--color-old-mtl)', meta: '🍷 Upscale French Dinner' },
-            { id: 8, zone: 'old-mtl', type: 'Food', name: 'The Crew Collective & Café', desc: 'Stunning architectural cafe set inside a vast historic 1920s royal bank lobby.', lat: 45.5022, lng: -73.5601, border: 'var(--color-old-mtl)', meta: '☕ Coffee & Architecture' },
-            { id: 9, zone: 'old-mtl', type: 'Food', name: 'Modavie', desc: 'Classic French bistro and jazz bar with fantastic lamb and wine pairings.', lat: 45.5065, lng: -73.5547, border: 'var(--color-old-mtl)' },
-            { id: 10, zone: 'old-mtl', type: 'Food', name: 'Holder', desc: 'Bustling, majestic European-style brasserie serving impeccable French fare.', lat: 45.5019, lng: -73.5574, border: 'var(--color-old-mtl)' },
-            { id: 11, zone: 'old-mtl', type: 'Food', name: 'Pincette', desc: 'Your designated "bar à homard" lobster hub right in the old quarter.', lat: 45.5068, lng: -73.5539, border: 'var(--color-old-mtl)', meta: '🦞 Lobster Bar' },
+            // OLD MONTREAL & OLD PORT
+            { id: 1, zone: 'old-mtl', type: 'Attraction', name: 'Old Montreal*', desc: 'Classic Poutine - Could walk for the whole day', lat: 45.5074, lng: -73.5542, border: 'var(--color-old-mtl)' },
+            { id: 2, zone: 'old-mtl', type: 'Attraction', name: 'Montreal Science Center*', desc: 'Interactive science museum on the pier.', lat: 45.5042, lng: -73.5518, border: 'var(--color-old-mtl)' },
+            { id: 3, zone: 'old-mtl', type: 'Attraction', name: 'Basilique Notre-Dame de Montreal', desc: '朝聖聖母聖聖聖聖母聖聖聖聖殿', lat: 45.5045, lng: -73.5560, border: 'var(--color-old-mtl)' },
+            { id: 4, zone: 'old-mtl', type: 'Attraction', name: 'Aura Light Show', desc: 'Immersive light mapping show inside Notre-Dame Basilica.', lat: 45.5045, lng: -73.5561, border: 'var(--color-old-mtl)' },
+            { id: 5, zone: 'old-mtl', type: 'Attraction', name: 'La Grande Roue Ferris Wheel', desc: 'Large observation wheel over the St. Lawrence river.', lat: 45.5090, lng: -73.5490, border: 'var(--color-old-mtl)' },
+            { id: 6, zone: 'old-mtl', type: 'Attraction', name: 'Old Port of Montreal', desc: 'Historic riverfront recreation area.', lat: 45.5052, lng: -73.5501, border: 'var(--color-old-mtl)' },
+            { id: 7, zone: 'old-mtl', type: 'Attraction', name: 'Marche Bonsecours', desc: 'Historic public market building in old montreal.', lat: 45.5096, lng: -73.5514, border: 'var(--color-old-mtl)' },
+            { id: 8, zone: 'old-mtl', type: 'Attraction', name: 'Haunted Montreal Ghost Tour', desc: 'Ghost walk experiences detailing history through the old city alleyways.', lat: 45.5030, lng: -73.5550, border: 'var(--color-old-mtl)' },
+            { id: 9, zone: 'old-mtl', type: 'Food', name: 'Crêperie St. Paul', desc: 'Traditional Pancake / crepe destination.', lat: 45.5079, lng: -73.5526, border: 'var(--color-old-mtl)', meta: '🥞 Pancake/crepe' },
+            { id: 10, zone: 'old-mtl', type: 'Food', name: 'Modavie法國餐廳', desc: 'Excellent local French dining with live jazz elements.', lat: 45.5065, lng: -73.5547, border: 'var(--color-old-mtl)' },
+            { id: 11, zone: 'old-mtl', type: 'Food', name: 'Holder 法國餐廳分享', desc: 'Classic French brasserie (Timestamp 12:58).', lat: 45.5019, lng: -73.5574, border: 'var(--color-old-mtl)' },
+            { id: 12, zone: 'old-mtl', type: 'Food', name: 'The Crew 銀行cafe', desc: 'Beautiful spacious cafe built inside a grand old historic bank vault room (Timestamp 15:03).', lat: 45.5022, lng: -73.5601, border: 'var(--color-old-mtl)' },
+            { id: 13, zone: 'old-mtl', type: 'Food', name: 'Monarque', desc: 'Frenchie Dinner spot.', lat: 45.5028, lng: -73.5595, border: 'var(--color-old-mtl)', meta: '📍 406 Rue Saint-Jacques' },
+            { id: 14, zone: 'old-mtl', type: 'Food', name: 'Pincette - bar a homard', desc: 'Cozy specialized seafood and lobster destination.', lat: 45.5068, lng: -73.5539, border: 'var(--color-old-mtl)' },
 
-            // ZONE 2: DOWNTOWN
-            { id: 12, zone: 'downtown', type: 'Attraction', name: 'St. Catherine Shopping Area', desc: 'The pulse of downtown commercial retail shopping.', lat: 45.5018, lng: -73.5714, border: 'var(--color-downtown)' },
-            { id: 13, zone: 'downtown', type: 'Attraction', name: 'Underground City (RÉSO)', desc: 'Subterranean nexus. Main entry hub at 747 Rue du Square-Victoria.', lat: 45.5015, lng: -73.5641, border: 'var(--color-downtown)' },
-            { id: 14, zone: 'downtown', type: 'Attraction', name: 'Oasis Immersion', desc: 'Massive, room-scale walk-through digital interactive exhibition layout.', lat: 45.5020, lng: -73.5630, border: 'var(--color-downtown)' },
-            { id: 15, zone: 'downtown', type: 'Attraction', name: 'Montreal Museum of Fine Arts', desc: 'Deep collections of classic and contemporary global artistic works.', lat: 45.4986, lng: -73.5801, border: 'var(--color-downtown)' },
-            { id: 16, zone: 'downtown', type: 'Food', name: 'Le Passé Composé', desc: 'Famous Duck Liver Lunch/Brunch located at 1310 Boul. de Maisonneuve E.', lat: 45.5212, lng: -73.5562, border: 'var(--color-downtown)', meta: '🦆 Duck Liver Bistro' },
-            { id: 17, zone: 'downtown', type: 'Food', name: 'Dunn\'s Famous', desc: 'Open late-night legendary spot for authentic Montreal Smoked Meat.', lat: 45.5005, lng: -73.5719, border: 'var(--color-downtown)' },
-            { id: 18, zone: 'downtown', type: 'Food', name: 'Le Pois Penché', desc: 'Refined Parisian luxury seafood dining spot.', lat: 45.4990, lng: -73.5760, border: 'var(--color-downtown)', meta: '🦪 High-End Seafood' },
-            { id: 19, zone: 'downtown', type: 'Food', name: 'C\'choColat', desc: 'Decadent interactive desserts and custom sweets workshop.', lat: 45.4947, lng: -73.5794, border: 'var(--color-downtown)' },
-            { id: 20, zone: 'downtown', type: 'Hotel', name: 'Warwick Le Crystal / Marriott', desc: 'Central downtown accommodation luxury hub zone.', lat: 45.4975, lng: -73.5705, border: 'var(--color-downtown)' },
+            // DOWNTOWN & CHINATOWN
+            { id: 15, zone: 'downtown', type: 'Attraction', name: 'St Catherine’s shopping Area', desc: 'Busy retail hub paired with Smoked Meat Sandwiches nearby.', lat: 45.5018, lng: -73.5714, border: 'var(--color-downtown)', meta: '🥪 Smoked Meat Sandwich' },
+            { id: 16, zone: 'downtown', type: 'Attraction', name: 'Montreal Museum of Fine Arts', desc: 'Major art museum with historical and international collections.', lat: 45.4986, lng: -73.5801, border: 'var(--color-downtown)' },
+            { id: 17, zone: 'downtown', type: 'Attraction', name: 'underground city', desc: 'Massive shopping network system.', lat: 45.5015, lng: -73.5641, border: 'var(--color-downtown)', meta: '📍 747 Rue du Square-Victoria suite 700' },
+            { id: 18, zone: 'downtown', type: 'Attraction', name: 'Oasis immersion 展覽', desc: 'Large walk-in digital multimedia experiential space (Timestamp 15:45).', lat: 45.5020, lng: -73.5630, border: 'var(--color-downtown)' },
+            { id: 19, zone: 'downtown', type: 'Attraction', name: 'China Town', desc: 'Vibrant cultural enclave filled with asian noodle houses and gift stores.', lat: 45.5073, lng: -73.5603, border: 'var(--color-downtown)' },
+            { id: 20, zone: 'downtown', type: 'Food', name: 'Dunn\'s Famous', desc: 'Famous timeless spot for classic smoked meat stacked platters.', lat: 45.5005, lng: -73.5719, border: 'var(--color-downtown)' },
+            { id: 21, zone: 'downtown', type: 'Food', name: 'Le Pois Penche 高級海鮮餐廳', desc: 'Premium luxury French seafood spot (Timestamp 00:17).', lat: 45.4990, lng: -73.5760, border: 'var(--color-downtown)' },
+            { id: 22, zone: 'downtown', type: 'Food', name: 'C\'choColat 甜品店', desc: 'Extravagant dessert store (Timestamp 10:56).', lat: 45.4947, lng: -73.5794, border: 'var(--color-downtown)' },
+            { id: 23, zone: 'downtown', type: 'Food', name: 'Breakfast at le mount stephen', desc: 'Opulent architecture breakfast dining lounge.', lat: 45.4996, lng: -73.5752, border: 'var(--color-downtown)' },
+            { id: 24, zone: 'downtown', type: 'Food', name: 'Le Passe Compose', desc: 'Famous Duck Liver Lunch / Brunch spot.', lat: 45.5212, lng: -73.5562, border: 'var(--color-downtown)', meta: '🦆 1310 Boul. de Maisonneuve E' },
+            { id: 25, zone: 'downtown', type: 'Hotel', name: 'DoubleTree by Hilton Montreal', desc: 'Hotel inside the downtown arts district square.', lat: 45.5075, lng: -73.5644, border: 'var(--color-downtown)' },
+            { id: 26, zone: 'downtown', type: 'Hotel', name: 'Montreal Marriott Chateau Champlain', desc: 'Central iconic skyscraper hotel choice.', lat: 45.4988, lng: -73.5668, border: 'var(--color-downtown)' },
+            { id: 27, zone: 'downtown', type: 'Hotel', name: 'Warwick Le Crystal - Montréal', desc: 'Premium boutique suites close to Bell Centre.', lat: 45.4975, lng: -73.5705, border: 'var(--color-downtown)' },
 
-            // ZONE 3: MOUNT ROYAL & NORTH
-            { id: 21, zone: 'mountain', type: 'Attraction', name: 'Mount Royal Park', desc: 'Panoramic city lookouts. Just up the road from Little Italy.', lat: 45.5041, lng: -73.5874, border: 'var(--color-mountain)' },
-            { id: 22, zone: 'mountain', type: 'Attraction', name: 'Saint Joseph\'s Oratory', desc: 'Stunning monumental domed basilica overlooking the western city slope.', lat: 45.4924, lng: -73.6176, border: 'var(--color-mountain)' },
-            { id: 23, zone: 'mountain', type: 'Attraction', name: 'Jean-Talon Market & Little Italy', desc: 'Open-air fresh product displays and exceptional Italian bistros.', lat: 45.5361, lng: -73.6150, border: 'var(--color-mountain)' },
-            { id: 24, zone: 'mountain', type: 'Food', name: 'Schwartz\'s Deli', desc: 'World-renowned iconic spice-rubbed smoked meat sandwiches.', lat: 45.5165, lng: -73.5777, border: 'var(--color-mountain)', meta: '🥪 Must-Visit Classic' },
-            { id: 25, zone: 'mountain', type: 'Food', name: 'Café Olimpico', desc: 'The place to sample their legendary coffee ice cream treats.', lat: 45.5229, lng: -73.6074, border: 'var(--color-mountain)', meta: '🍦 Coffee & Ice Cream' },
-            { id: 26, zone: 'mountain', type: 'Food', name: 'Dulce Churros', desc: 'Premium artisanal churro shop.', lat: 45.5180, lng: -73.5850, border: 'var(--color-mountain)' },
+            // MOUNT ROYAL, MILE END & LITTLE ITALY
+            { id: 28, zone: 'mountain', type: 'Attraction', name: 'Mount Royal Park', desc: 'Just down the road from Little Italy and the Jean Talon Market*. Food note: Lobster Roll/Guedille au homard, Italian Food.', lat: 45.5041, lng: -73.5874, border: 'var(--color-mountain)', meta: '🦞 Lobster Roll / Italian Food' },
+            { id: 29, zone: 'mountain', type: 'Attraction', name: 'Saint Joseph\'s Oratory of Mount Royal', desc: 'Massive hillside pilgrimage shrine with grand view.', lat: 45.4924, lng: -73.6176, border: 'var(--color-mountain)' },
+            { id: 30, zone: 'mountain', type: 'Food', name: 'Schwartz\'s Deli 燻肉三文治', desc: 'World famous cured Montreal smoked meat sandwiches.', lat: 45.5165, lng: -73.5777, border: 'var(--color-mountain)' },
+            { id: 31, zone: 'mountain', type: 'Food', name: 'cafe olimpico', desc: '可以一試coffee雪糕店 (Famous coffee espresso & ice cream).', lat: 45.5229, lng: -73.6074, border: 'var(--color-mountain)' },
+            { id: 32, zone: 'mountain', type: 'Food', name: 'Dulce churros店', desc: '最好食churros店 (Timestamp 09:45).', lat: 45.5180, lng: -73.5850, border: 'var(--color-mountain)' },
+            { id: 33, zone: 'mountain', type: 'Food', name: 'Louise Boulangerie', desc: 'Excellent fresh pastry spot featuring their famous grape tart.', lat: 45.5173, lng: -73.5790, border: 'var(--color-mountain)', meta: '🍇 grape tart' },
+            { id: 34, zone: 'mountain', type: 'Food', name: 'Café Saint Henri', desc: 'Artisanal local specialty coffee roasting shop.', lat: 45.4764, lng: -73.5872, border: 'var(--color-mountain)' },
+            { id: 35, zone: 'mountain', type: 'Food', name: 'Café Cherrier', desc: 'Classic historical terrace neighborhood French bistro.', lat: 45.5193, lng: -73.5694, border: 'var(--color-mountain)' },
 
-            // ZONE 4: OLYMPIC PARK
-            { id: 27, zone: 'olympic', type: 'Attraction', name: 'Montreal Biodome', desc: 'Five distinct replica American ecosystems housed under one roof.', lat: 45.5598, lng: -73.5496, border: 'var(--color-olympic)' },
-            { id: 28, zone: 'olympic', type: 'Attraction', name: 'Montreal Botanical Garden', desc: 'Expansive thematic greenhouses. Bring your local bagels here to eat!', lat: 45.5601, lng: -73.5570, border: 'var(--color-olympic)' },
-            { id: 29, zone: 'olympic', type: 'Attraction', name: 'Montreal Insectarium', desc: 'Remarkable architectural bug exhibition pavilion.', lat: 45.5615, lng: -73.5540, border: 'var(--color-olympic)' },
+            // OLYMPIC PARK
+            { id: 36, zone: 'olympic', type: 'Attraction', name: 'Montreal Biodome*', desc: 'Biodome Montreal indoor nature walk ecosystems.', lat: 45.5598, lng: -73.5496, border: 'var(--color-olympic)' },
+            { id: 37, zone: 'olympic', type: 'Attraction', name: 'Montreal Botanical Garden', desc: 'Beautiful grounds. Food note: perfect place to eat fresh bagels.', lat: 45.5601, lng: -73.5570, border: 'var(--color-olympic)', meta: '🥯 Bagels' },
+            { id: 38, zone: 'olympic', type: 'Attraction', name: 'The Montreal Insectarium', desc: 'Modern specialized insect discovery museum.', lat: 45.5615, lng: -73.5540, border: 'var(--color-olympic)' },
 
-            // ZONE 5: ISLANDS
-            { id: 30, zone: 'islands', type: 'Attraction', name: 'Parc Jean-Drapeau', desc: 'Expansive river park islands hosting massive festivals and art.', lat: 45.5131, lng: -73.5284, border: 'var(--color-islands)' },
-            { id: 31, zone: 'islands', type: 'Attraction', name: 'Circuit Gilles Villeneuve (F1)', desc: 'The official high-speed Formula 1 championship track on Île Notre-Dame.', lat: 45.5044, lng: -73.5228, border: 'var(--color-islands)' },
-            { id: 32, zone: 'islands', type: 'Attraction', name: 'La Ronde Amusement Park', desc: 'Six Flags theme park. Look for the legendary M&M topping pizza!', lat: 45.5285, lng: -73.5345, border: 'var(--color-islands)', meta: '🍕 M&M Pizza Spot' },
-            { id: 33, zone: 'islands', type: 'Attraction', name: 'Cirque Du Soleil Theater', desc: 'Grand entertainment arena showcasing iconic acrobatic performance art.', lat: 45.5165, lng: -73.5422, border: 'var(--color-islands)' }
+            // PARC JEAN-DRAPEAU & ISLANDS
+            { id: 39, zone: 'islands', type: 'Attraction', name: 'Parc Jean-Drapeau', desc: 'Large park space spread across two river islands.', lat: 45.5131, lng: -73.5284, border: 'var(--color-islands)' },
+            { id: 40, zone: 'islands', type: 'Attraction', name: 'IIe-Notre-Dame / F1 race circuit', desc: 'The official active Circuit Gilles Villeneuve Formula 1 race track.', lat: 45.5044, lng: -73.5228, border: 'var(--color-islands)' },
+            { id: 41, zone: 'islands', type: 'Attraction', name: 'La Ronde', desc: 'Amusement Park. Food note: Pizza with m&m topping.', lat: 45.5285, lng: -73.5345, border: 'var(--color-islands)', meta: '🍕 Pizza with m&m topping' },
+            { id: 42, zone: 'islands', type: 'Attraction', name: 'Cirque Du Soleil Theater – Circus', desc: 'Grand performance venue grounds.', lat: 45.5165, lng: -73.5422, border: 'var(--color-islands)' },
+
+            // REGIONAL / TRANSIT
+            { id: 43, zone: 'regional', type: 'Attraction', name: 'Parc Safari', desc: 'Drive-through animal park safari outside the city grid.', lat: 45.0352, lng: -73.5134, border: 'var(--color-regional)' },
+            { id: 44, zone: 'regional', type: 'Attraction', name: 'King’s Crossing Fashion Outlet', desc: 'Shopping outlet stops along the driving route from Toronto.', lat: 44.2750, lng: -76.4950, border: 'var(--color-regional)' },
+            { id: 45, zone: 'regional', type: 'Hotel', name: 'Holiday Inn Express Montreal Airport', desc: 'Airport hotel zone in St-Laurent area.', lat: 45.4789, lng: -73.7122, border: 'var(--color-regional)' }
         ];
 
-        // Initialize Live Map (Centered on core Montreal Coordinates)
-        const map = L.map('map').setView([45.515, -73.565], 13);
-
-        // Inject OpenStreetMap Layer Graphics
+        // Init Map Focus
+        const map = L.map('map').setView([45.512, -73.565], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
         const markersMap = {};
 
-        // Generate Map Markers Programmatically
         function loadMarkers() {
             locationsData.forEach(loc => {
-                // Determine marker color depending on zone categorization
-                let markerColor = '#64748b';
-                if(loc.zone === 'old-mtl') markerColor = 'var(--color-old-mtl)';
-                if(loc.zone === 'downtown') markerColor = 'var(--color-downtown)';
-                if(loc.zone === 'mountain') markerColor = 'var(--color-mountain)';
-                if(loc.zone === 'olympic') markerColor = 'var(--color-olympic)';
-                if(loc.zone === 'islands') markerColor = 'var(--color-islands)';
+                let mColor = '#64748b';
+                if(loc.zone === 'old-mtl') mColor = 'var(--color-old-mtl)';
+                if(loc.zone === 'downtown') mColor = 'var(--color-downtown)';
+                if(loc.zone === 'mountain') mColor = 'var(--color-mountain)';
+                if(loc.zone === 'olympic') mColor = 'var(--color-olympic)';
+                if(loc.zone === 'islands') mColor = 'var(--color-islands)';
 
-                const customMarker = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div style="background-color: ${markerColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4);"></div>`,
+                const customIcon = L.divIcon({
+                    className: 'map-marker-pin',
+                    html: `<div style="background-color: ${mColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
                     iconSize: [14, 14],
                     iconAnchor: [7, 7]
                 });
 
-                const popupContent = `
+                const popupHtml = `
                     <div class="popup-card">
                         <h3>${loc.name}</h3>
                         <p><strong>${loc.type}</strong></p>
                         <p>${loc.desc}</p>
-                        ${loc.meta ? `<span class="popup-badge" style="color:#b45309;">${loc.meta}</span>` : ''}
+                        ${loc.meta ? `<p style="color:#b45309;font-weight:bold;margin-top:4px;">${loc.meta}</p>` : ''}
                     </div>
                 `;
 
-                const marker = L.marker([loc.lat, loc.lng], { icon: customMarker })
-                    .bindPopup(popupContent, { className: 'custom-popup' })
+                const marker = L.marker([loc.lat, loc.lng], { icon: customIcon })
+                    .bindPopup(popupHtml)
                     .addTo(map);
 
                 markersMap[loc.id] = marker;
             });
         }
 
-        // Render Dynamic Cards into Sidebar List View
         function renderList(filteredData) {
             const container = document.getElementById('locationsList');
             container.innerHTML = '';
 
-            if(filteredData.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-muted); font-size:14px; padding:20px; text-align:center;">No spots match your filters.</p>';
-                return;
-            }
-
             filteredData.forEach(loc => {
                 const card = document.createElement('div');
-                card.className = `location-item`;
+                card.className = 'location-item';
                 card.style.borderLeftColor = loc.border;
-                card.onclick = () => focusLocation(loc.id, loc.lat, loc.lng);
+                card.onclick = () => {
+                    map.setView([loc.lat, loc.lng], 14, { animate: true });
+                    setTimeout(() => markersMap[loc.id].openPopup(), 300);
+                };
 
                 card.innerHTML = `
-                    <div class="item-header">
+                    <div>
+                        <span class="item-type" style="color:${loc.border}; background:#f1f5f9;">${loc.type}</span>
                         <span class="item-title">${loc.name}</span>
-                        <span class="item-type" style="color: ${loc.border}; background: #f1f5f9;">${loc.type}</span>
                     </div>
                     <div class="item-desc">${loc.desc}</div>
-                    ${loc.meta ? `<div class="item-meta" style="color:#b45309;">🍔 ${loc.meta}</div>` : ''}
+                    ${loc.meta ? `<div class="item-meta">${loc.meta}</div>` : ''}
                 `;
                 container.appendChild(card);
             });
         }
 
-        // Handle Map Pan Zoom Transitions on Item Selection
-        function focusLocation(id, lat, lng) {
-            map.setView([lat, lng], 15, { animate: true, duration: 1.5 });
-            const marker = markersMap[id];
-            if (marker) {
-                setTimeout(() => {
-                    marker.openPopup();
-                }, 400);
-            }
-        }
-
-        // Filter Logic Matrix (Combining Header Buttons & Search Inputs)
-        let currentZone = 'all';
-
+        let activeZone = 'all';
         function filterZone(zoneId) {
-            currentZone = zoneId;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            activeZone = zoneId;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
             applyFilters();
         }
 
         function applyFilters() {
             const query = document.getElementById('searchBar').value.toLowerCase();
-            
             const filtered = locationsData.filter(loc => {
-                const matchesZone = (currentZone === 'all' || loc.zone === currentZone);
-                const matchesSearch = loc.name.toLowerCase().includes(query) || 
-                                      loc.desc.toLowerCase().includes(query) || 
-                                      (loc.meta && loc.meta.toLowerCase().includes(query));
-                return matchesZone && matchesSearch;
+                const zoneMatch = (activeZone === 'all' || loc.zone === activeZone);
+                const searchMatch = loc.name.toLowerCase().includes(query) || loc.desc.toLowerCase().includes(query);
+                return zoneMatch && searchMatch;
             });
 
-            // Update visible list
             renderList(filtered);
-
-            // Update visible markers on map canvas
             locationsData.forEach(loc => {
-                const isMatch = filtered.some(f => f.id === loc.id);
-                if (isMatch) {
-                    if (!map.hasLayer(markersMap[loc.id])) map.addLayer(markersMap[loc.id]);
-                } else {
-                    if (map.hasLayer(markersMap[loc.id])) map.removeLayer(markersMap[loc.id]);
-                }
+                const match = filtered.some(f => f.id === loc.id);
+                if (match) { if (!map.hasLayer(markersMap[loc.id])) map.addLayer(markersMap[loc.id]); }
+                else { if (map.hasLayer(markersMap[loc.id])) map.removeLayer(markersMap[loc.id]); }
             });
         }
 
-        // Event Listener Bindings
         document.getElementById('searchBar').addEventListener('input', applyFilters);
-
-        // Initial System Spin Up
         loadMarkers();
         renderList(locationsData);
     </script>
